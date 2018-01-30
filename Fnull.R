@@ -1,23 +1,5 @@
-
-
-
-### Functional null model
-
-
-spxplot<-rbind(S1=c(A=1,B=1,C=1,D=0,E=0),
-      S2=c(A=1,B=1,C=0,D=1,E=0),
-      S3=c(A=1,B=0,C=0,D=1,E=1))
-
-spxtrait<-rbind(A=c(t1=1,t2=1),
-                B=c(t1=2,t2=2),
-                C=c(t1=3,t2=2),
-                D=c(t1=3,t2=3),
-                E=c(t1=2,t2=1))
-
-coords<-c(1,2,3)
-
-
 ### 
+source("newbeta.part.core.R")
 
 library(vegan)
 library(ecodist)
@@ -51,7 +33,11 @@ rect(1,1,2,2, col="#FF000050" , border="#FF0000") ; text(1.5,1.5,"A",col="#FF000
 rect(3,3,5,5, col="#1E90FF50", border="#1E90FF") ; text(4,4.2,"C",col="#1E90FF",cex=1.5)	
 
 
-func.pair<-functional.beta.pair(x=comm.test, traits=traits.test, index.family = "jaccard" )
+
+
+func.pair<-functional.beta.pair(x=comm.test, traits=traits.test, index.family = "jaccard",prefix = "verts/obs")
+
+
 
 
 taxo.pair<-beta.pair(x=comm.test,index.family = "jaccard" )
