@@ -1,17 +1,10 @@
 ### 
-source("newbeta.part.core.R")
-
 library(vegan)
 library(ecodist)
 library(betapart)
 library(FD)
 
-jac<-vegdist(spxplot,"jac")
-geodist<-dist(coords)
-
-plot(jac~geodist)
-
-functional.beta.pair(as.matrix(spxplot),(spxtrait),"jaccard")
+source("newbeta.part.core.R")
 
 
 traits.test<-cbind( c(1,1,1,2,2,3,3,4,4,5,5) , c(1,2,4,1,2,3,5,1,4,3,5) )
@@ -33,29 +26,34 @@ rect(1,1,2,2, col="#FF000050" , border="#FF0000") ; text(1.5,1.5,"A",col="#FF000
 rect(3,3,5,5, col="#1E90FF50", border="#1E90FF") ; text(4,4.2,"C",col="#1E90FF",cex=1.5)	
 
 
-
+dir.create("verts")
 
 func.pair<-functional.beta.pair(x=comm.test, traits=traits.test, index.family = "jaccard",prefix = "verts/obs")
 
-
-
-
 taxo.pair<-beta.pair(x=comm.test,index.family = "jaccard" )
 
-cor(taxo.pair$beta.jtu,func.pair$funct.beta.jtu)
-
+func.pair.random<-list()
 ver<-{}
-for(i in 1:1000){
-  tryCatch({
-    traits.test.random<-apply(traits.test,2,function(x)sample(x))
-    func.pair.random<-functional.beta.pair(x=comm.test, traits=traits.test.random, index.family = "jaccard" )
-    
-    ver[i]<-cor(taxo.pair$beta.jac,func.pair.random$funct.beta.jac)
-    
-      }, error=function(e){})
-}
 
-hist(ver)
+
+
+
+functional.beta.pair.random<-function(i,x,traits,index.family="jaccard",prefix=""){
+  tryCatch({
+    traits.random<-traits[sample(1:nrow(traits)),]
+    rownames(traits.random)<-rownames(traits)
+    
+    gower.dist<-gowdis(traits.random)
+    pcoa<-cmdscale(gower.dist,2)
+    
+    func.pair.random<-functional.beta.pair(x=x, traits=pcoa, index.family = index.family,prefix = paste0(prefix,i))
+  
+  return(func.pair.random)
+  }, error=function(e){})
+}
+  
+func.pair.random<-lapply(1:10,functional.beta.pair.random,x=comm.test,traits=traits.test, index.family = "jaccard",prefix = "verts/sim_")
+  
 
 
 
@@ -72,33 +70,44 @@ sum(!row.names(traits)%in%colnames(otto3))# must be zero
 sum(!colnames(otto3)%in%row.names(traits))# must be zero
 
 
-##
+## Using with real data
 
 gower.dist<-gowdis(traits)
-pcoa<-cmdscale(gower.dist,5)
+pcoa<-cmdscale(gower.dist,2)
 
-func.pair<-functional.beta.pair(x=otto3, traits=pcoa[,1:2], index.family = "jaccard" )
-
-taxo.pair<-beta.pair(x=comm.test,index.family = "jaccard" )
-
-traits.test.random<-apply(traits.test,2,function(x)sample(x
+func.pair<-functional.beta.pair(x=otto3, traits=pcoa, index.family = "jaccard",prefix="verts/obs")
 
 
+taxo.pair<-beta.pair(x=comm.test,index.family = "jaccard")
 
 cor(taxo.pair$beta.jtu,func.pair$funct.beta.jtu)
 
+func.pair.otto3.random<-list()
 ver<-{}
-for(i in 1:1000){
+
+
+func.pair.random.otto3<-lapply(1:2,functional.beta.pair.random,x=otto3,traits=traits, index.family = "jaccard",prefix = "verts/sim_")
+
+
+
+for(i in 1:100){
   tryCatch({
-    traits.test.random<-apply(traits.test,2,function(x)sample(x))
-    func.pair.random<-functional.beta.pair(x=comm.test, traits=traits.test.random, index.family = "jaccard" )
+    traits.random<-traits[sample(1:nrow(traits)),]
+    rownames(traits.random)<-rownames(traits)
     
-    ver[i]<-cor(taxo.pair$beta.jac,func.pair.random$funct.beta.jac)
+    gower.dist<-gowdis(traits.random)
+    pcoa<-cmdscale(gower.dist,5)
+    
+    func.pair<-functional.beta.pair(x=otto3, traits=pcoa[,1:2], index.family = "jaccard",prefix="verts/obs")
+
+    func.pair.random[[i]]<-functional.beta.pair(x=comm.test, traits=traits.test.random, index.family = "jaccard",prefix = paste0("verts/sim_",i))
+    
+    ver[i]<-cor(taxo.pair$beta.jac,func.pair.random[[i]]$funct.beta.jac)
     
   }, error=function(e){})
 }
 
-hist(ver)
+
 
 
 
