@@ -1,12 +1,18 @@
-### 
+##### Functional diversity of stream fishes in Brazil - Analysis
+##### Created by CSDambros in Feb 1st 2018
+
+
+### Load packages
+
 library(vegan)
 library(ecodist)
 library(betapart)
 library(FD)
 
+### Source functions created or modified
 source("newbeta.part.core.R")
 
-
+###
 traits.test<-cbind( c(1,1,1,2,2,3,3,4,4,5,5) , c(1,2,4,1,2,3,5,1,4,3,5) )
 dimnames(traits.test)<-list(paste("sp",1:11,sep="") , c("Trait 1","Trait 2") ) 
 
@@ -30,33 +36,22 @@ dir.create("verts")
 
 func.pair<-functional.beta.pair(x=comm.test, traits=traits.test, index.family = "jaccard",prefix = "verts/obs")
 
+
 taxo.pair<-beta.pair(x=comm.test,index.family = "jaccard" )
 
-func.pair.random<-list()
-ver<-{}
+# Randomize traits and calculate functional similarity
+func.pair.random<-lapply(1:100,functional.beta.pair.random,x=comm.test,traits=traits.test,index.family="jaccard",prefix="verts/rtest1.",gower=FALSE)
 
+length(func.pair.random)
 
+# Remove matrices where error occurred (null)
+func.pair.random<-func.pair.random[unlist(lapply(func.pair.random,function(x)!is.null(x)))]
 
+# Check how many aleatorizations remained
+length(func.pair.random)
 
-functional.beta.pair.random<-function(i,x,traits,index.family="jaccard",prefix=""){
-  tryCatch({
-    traits.random<-traits[sample(1:nrow(traits)),]
-    rownames(traits.random)<-rownames(traits)
-    
-    gower.dist<-gowdis(traits.random)
-    pcoa<-cmdscale(gower.dist,2)
-    
-    func.pair.random<-functional.beta.pair(x=x, traits=pcoa, index.family = index.family,prefix = paste0(prefix,i))
-  
-  return(func.pair.random)
-  }, error=function(e){})
-}
-  
-func.pair.random<-lapply(1:10,functional.beta.pair.random,x=comm.test,traits=traits.test, index.family = "jaccard",prefix = "verts/sim_")
-  
-
-
-
+# Correlate taxonomic and functional similarity expected under null model
+hist(unlist(lapply(func.pair.random, function(x)cor(x$funct.beta.jac,taxo.pair$beta.jac))))
 
 #######
 
@@ -72,10 +67,35 @@ sum(!colnames(otto3)%in%row.names(traits))# must be zero
 
 ## Using with real data
 
+taxo.pair<-beta.pair(x=otto3[1:5,1:200],index.family = "jaccard" )
+
 gower.dist<-gowdis(traits)
 pcoa<-cmdscale(gower.dist,2)
 
 func.pair<-functional.beta.pair(x=otto3, traits=pcoa, index.family = "jaccard",prefix="verts/obs")
+
+# Run a single time to check if is working
+functional.beta.pair.random(1,x=otto3[1:5,1:200],traits=traits[1:200,],index.family="jaccard",prefix="rtest1.")
+
+# Randomize traits and calculate functional similarity
+func.pair.random<-lapply(1:10,functional.beta.pair.random,x=otto3[1:5,1:200],traits=traits[1:200,],index.family="jaccard",prefix="verts/rtest1.")
+
+length(func.pair.random)
+
+# Remove matrices where error occurred (null)
+func.pair.random<-func.pair.random[unlist(lapply(func.pair.random,function(x)!is.null(x)))]
+
+# Check how many aleatorizations remained
+length(func.pair.random)
+
+# Correlate taxonomic and functional similarity expected under null model
+hist(unlist(lapply(func.pair.random, function(x)cor(x$funct.beta.jac,taxo.pair$beta.jac))))
+
+
+
+
+############## Ends here
+
 
 
 taxo.pair<-beta.pair(x=comm.test,index.family = "jaccard")
