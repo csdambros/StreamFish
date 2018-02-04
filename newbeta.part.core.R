@@ -15,7 +15,8 @@ functional.betapart.core <-
             return.details = FALSE,
             prefix = "")
   {
-    require(betapart)
+    require(geometry)
+    require(rcdd)
     
     if (!is.matrix(x)) {
       x <- as.matrix(x)
@@ -296,60 +297,60 @@ functional.beta.pair <-
   }
 
 # Include the functional.betapart.core into the betapart environment (required)
-library(betapart)
-environment(functional.betapart.core) <- environment(betapart.core)
+#library(betapart)
+#environment(functional.betapart.core) <- environment(betapart.core)
 
 #' Null model
 #' The function randomizes species traits while maintaining the changes in species taxonomic composition and linkage between traits intact (fixed algorithm)
 
 #' @param i a single number to be used in a for or lapply loop
 
-
-functional.beta.pair.null <-
-  function(i,
-           x,
-           traits,
-           index.family = "jaccard",
-           prefix = "",gower=TRUE,nreps=99) {
-
-    tryCatch({
-
-      
-      
-      return(func.pair.random)
-    }, error=function(e){})
-  }
-
-###
-
-functional.beta.pair.random <-
-  function(x,
-           traits,
-           index.family = "jaccard",
-           prefix = "",gower=TRUE) {
-    require(FD)
-    require(betapart)
-    
-      tryCatch({
-    traits.random <- traits[sample(1:nrow(traits)), ]
-    rownames(traits.random) <- rownames(traits)
-    
-    if(gower==TRUE){
-    gower.dist <- gowdis(traits.random)
-    traits.random <- cmdscale(gower.dist, 2)
-    }
-    
-    func.pair.random <-
-      functional.beta.pair(
-        x = x,
-        traits = traits.random,
-        index.family = index.family,
-        prefix = paste0(prefix, i)
-      )
-    
-    return(func.pair.random)
-      }, error=function(e){})
-  }
+# 
+# functional.beta.pair.null <-
+#   function(i,
+#            x,
+#            traits,
+#            index.family = "jaccard",
+#            prefix = "",gower=TRUE,nreps=99) {
+# 
+#     tryCatch({
+# 
+#       
+#       
+#       return(func.pair.random)
+#     }, error=function(e){})
+#   }
+# 
+# ###
+# 
+# functional.beta.pair.random <-
+#   function(x,
+#            traits,
+#            index.family = "jaccard",
+#            prefix = "",gower=TRUE) {
+#     require(FD)
+#     require(betapart)
+#     
+#       tryCatch({
+#     traits.random <- traits[sample(1:nrow(traits)), ]
+#     rownames(traits.random) <- rownames(traits)
+#     
+#     if(gower==TRUE){
+#     gower.dist <- gowdis(traits.random)
+#     traits.random <- cmdscale(gower.dist, 2)
+#     }
+#     
+#     func.pair.random <-
+#       functional.beta.pair(
+#         x = x,
+#         traits = traits.random,
+#         index.family = index.family,
+#         prefix = paste0(prefix, i)
+#       )
+#     
+#     return(func.pair.random)
+#       }, error=function(e){})
+#   }
 
 
 
@@ -358,7 +359,7 @@ functional.beta.pair.random <-
 
 functional.beta.pair.random <-
   function(i,
-           x,
+           comm,
            traits,
            index.family = "jaccard",
            prefix = "",gower=TRUE) {
@@ -376,14 +377,77 @@ functional.beta.pair.random <-
       
       func.pair.random <-
         functional.beta.pair(
-          x = x,
+          x = comm,
           traits = traits.random,
           index.family = index.family,
           prefix = paste0(prefix, i)
         )
       
+#        Sys.sleep(100)
+      
+      write.csv(as.matrix(func.pair.random$funct.beta.jac),paste0("resu/jac",i,".csv"))
+      write.csv(as.matrix(func.pair.random$funct.beta.jtu),paste0("resu/jtu",i,".csv"))
+      write.csv(as.matrix(func.pair.random$funct.beta.jne),paste0("resu/jne",i,".csv"))
+      
       return(func.pair.random)
     }, error=function(e){})
   }
+
+####
+
+functional.beta.pair2.random <-
+  function(i,
+           comm,
+           traits,
+           index.family = "jaccard",
+           prefix = "",gower=TRUE) {
+    require(FD)
+    require(betapart)
+    
+    tryCatch({
+      traits.random <- traits[sample(1:nrow(traits)), ]
+      rownames(traits.random) <- rownames(traits)
+      
+      if(gower==TRUE){
+        gower.dist <- gowdis(traits.random)
+        traits.random <- cmdscale(gower.dist, 2)
+      }
+      
+      N<-nrow(comm)
+
+      func.pair.random<-list(jac=matrix(NA,N,N),jtu=matrix(NA,N,N),jne=matrix(NA,N,N))
+
+      
+      for (k in 1:(N - 1)){
+        for (j in (k + 1):N){
+          
+          func.pair.random.pre <-
+            functional.beta.pair(
+              x = comm[c(k,j),],
+              traits = traits.random,
+              #traits = traits,
+              index.family = index.family,
+              prefix = paste0(prefix, i)
+            )
+      
+        func.pair.random$jac[k,j]<-func.pair.random.pre$funct.beta.jac
+        func.pair.random$jtu[k,j]<-func.pair.random.pre$funct.beta.jtu
+        func.pair.random$jne[k,j]<-func.pair.random.pre$funct.beta.jne
+            
+        } 
+          
+      }
+
+      # Sys.sleep(100)
+      
+      write.csv(func.pair.random$jac,paste0("resu/jac",i,".csv"))
+      write.csv(func.pair.random$jtu,paste0("resu/jtu",i,".csv"))
+      write.csv(func.pair.random$jne,paste0("resu/jne",i,".csv"))
+      
+      return(func.pair.random)
+    }, error=function(e){})
+  }
+
+
 
 

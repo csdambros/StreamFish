@@ -33,14 +33,49 @@ rect(3,3,5,5, col="#1E90FF50", border="#1E90FF") ; text(4,4.2,"C",col="#1E90FF",
 
 
 dir.create("verts")
+dir.create("resu")
 
 func.pair<-functional.beta.pair(x=comm.test, traits=traits.test, index.family = "jaccard",prefix = "verts/obs")
-
 
 taxo.pair<-beta.pair(x=comm.test,index.family = "jaccard" )
 
 # Randomize traits and calculate functional similarity
-func.pair.random<-lapply(1:100,functional.beta.pair.random,x=comm.test,traits=traits.test,index.family="jaccard",prefix="verts/rtest1.",gower=FALSE)
+func.pair.random<-lapply(1:100,functional.beta.pair.random,comm=comm.test,traits=traits.test,index.family="jaccard",prefix="verts/rtest1.",gower=FALSE)
+
+func.pair2.random<-lapply(1:100,functional.beta.pair2.random,comm=comm.test,traits=traits.test,index.family="jaccard",prefix="verts/rtest1.",gower=FALSE)
+
+func.pair2.random<-lapply(func.pair2.random,function(x){lapply(x,function(x){as.dist(t(x))})})
+
+
+length(func.pair.random)
+length(func.pair2.random)
+
+# Remove matrices where error occurred (null)
+func.pair.random<-func.pair.random[unlist(lapply(func.pair.random,function(x)!is.null(x)))]
+func.pair2.random<-func.pair2.random[unlist(lapply(func.pair2.random,function(x)length(x)>0))]
+
+# Check how many aleatorizations remained
+length(func.pair.random)
+length(func.pair2.random)
+
+# Correlate taxonomic and functional similarity expected under null model
+hist(unlist(lapply(func.pair.random, function(x)cor(x$funct.beta.jac,taxo.pair$beta.jac))))
+hist(unlist(lapply(func.pair2.random, function(x)cor(x$jac,taxo.pair$beta.jac))))
+
+#### Test in parallel
+
+library(snow)
+
+criscl<-makeCluster(20)
+
+clusterApply(criscl,1:15,function(x){Sys.sleep(2);system("ifconfig | grep '192.168'")})
+
+clusterExport(criscl,list("functional.beta.pair.random","functional.betapart.core","functional.beta.pair","traits.test","comm.test"))
+
+func.pair.random<-clusterApply(criscl,1:100,functional.beta.pair.random,comm=comm.test,traits=traits.test,index.family="jaccard",prefix="verts/rtest1.",gower=FALSE)
+
+
+stopCluster(cl)
 
 length(func.pair.random)
 
@@ -52,6 +87,9 @@ length(func.pair.random)
 
 # Correlate taxonomic and functional similarity expected under null model
 hist(unlist(lapply(func.pair.random, function(x)cor(x$funct.beta.jac,taxo.pair$beta.jac))))
+
+
+
 
 #######
 
@@ -67,19 +105,61 @@ sum(!colnames(otto3)%in%row.names(traits))# must be zero
 
 ## Using with real data
 
-taxo.pair<-beta.pair(x=otto3[1:5,1:200],index.family = "jaccard" )
+taxo.pair<-beta.pair(x=otto3,index.family = "jaccard" )
+
+dir.create("resu")
+
 
 gower.dist<-gowdis(traits)
 pcoa<-cmdscale(gower.dist,2)
 
+#func.pair<-functional.beta.pair(x=otto3[1:5,], traits=pcoa, index.family = "jaccard",prefix="verts/obs")
 func.pair<-functional.beta.pair(x=otto3, traits=pcoa, index.family = "jaccard",prefix="verts/obs")
 
 # Run a single time to check if is working
-functional.beta.pair.random(1,x=otto3[1:5,1:200],traits=traits[1:200,],index.family="jaccard",prefix="rtest1.")
+functional.beta.pair.random(1,comm=otto3[1:2,],traits=pcoa,index.family="jaccard",prefix="rtest1.",gower = FALSE)
+
+functional.beta.pair2.random(1,comm=otto3[1:2,],traits=pcoa,index.family="jaccard",prefix="rtest1.",gower = FALSE)
+
 
 # Randomize traits and calculate functional similarity
-func.pair.random<-lapply(1:10,functional.beta.pair.random,x=otto3[1:5,1:200],traits=traits[1:200,],index.family="jaccard",prefix="verts/rtest1.")
+#func.pair.random<-lapply(1:10,functional.beta.pair.random,comm=otto3[1:2,],traits=pcoa,index.family="jaccard",prefix="verts/rtest1.",gower=FALSE)
 
+## Running in parallel
+
+#### Test in parallel
+
+library(snow)
+
+cl<-makeCluster(20)
+
+clusterApply(cl,1:20,function(x){Sys.sleep(2);system("ifconfig | grep '192.168'")})
+
+clusterExport(cl,list("functional.beta.pair.random","functional.beta.pair2.random","functional.betapart.core","functional.beta.pair","traits","otto3","pcoa"))
+
+{
+
+#system.time(
+func.pair.random<-clusterApply(cl,1:1000,functional.beta.pair2.random,comm=otto3,traits=pcoa,index.family="jaccard",prefix="verts/rtest1.",gower=FALSE)
+#)
+
+
+#system.time(
+#func.pair.random<-clusterApply(cl,21:40,functional.beta.pair.random,otto3[1:10,],traits=pcoa,index.family="jaccard",prefix="verts/rtest1.",gower=FALSE)
+#)
+  
+  
+stopCluster(cl)
+  
+}
+
+
+#   
+# func.pair.random<-clusterApply(cl,1:100,function(i)functional.beta.pair.random(i,comm=otto3[1:15,],traits=traits[,],index.family="jaccard",prefix="verts/rtest1."))
+
+  
+  
+  
 length(func.pair.random)
 
 # Remove matrices where error occurred (null)
@@ -90,6 +170,8 @@ length(func.pair.random)
 
 # Correlate taxonomic and functional similarity expected under null model
 hist(unlist(lapply(func.pair.random, function(x)cor(x$funct.beta.jac,taxo.pair$beta.jac))))
+
+
 
 
 
